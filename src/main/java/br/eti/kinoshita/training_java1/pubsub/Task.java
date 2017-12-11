@@ -3,6 +3,8 @@ package br.eti.kinoshita.training_java1.pubsub;
 import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,5 +60,11 @@ public abstract class Task<T> implements Runnable {
         } catch (InterruptedException e) {
             LOGGER.log(Level.SEVERE, "Task failed: " + e.getMessage(), e);
         }
+    }
+
+    public static void main(String[] args) {
+        int numberOfTasks = 50;
+        ExecutorService pool = Executors.newFixedThreadPool();
+
     }
 }

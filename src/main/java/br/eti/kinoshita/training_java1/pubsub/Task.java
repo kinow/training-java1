@@ -3,6 +3,8 @@ package br.eti.kinoshita.training_java1.pubsub;
 import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class Task<T> implements Runnable {
 
@@ -13,6 +15,8 @@ public abstract class Task<T> implements Runnable {
     private final T result;
 
     private final Random generator = new Random();
+
+    private static final Logger LOGGER = Logger.getLogger(Task.class.getName());
 
     public Task(UUID identifier, LocalDateTime created, LocalDateTime started, LocalDateTime finished, T result) {
         super();
@@ -44,15 +48,15 @@ public abstract class Task<T> implements Runnable {
     }
 
     /**
-     * A dummy task that simply lasts betwen 500 and 1000 milliseconds. Its only output is the
-     * current nano time from the system, printed to the console output.
+     * A dummy task that simply lasts betwen 500 and 1000 milliseconds. It logs the
+     * current nano time at every execution.
      */
     public void run() {
         try {
-            System.out.println(System.nanoTime());
+            LOGGER.info(String.format("%d", System.nanoTime()));
             Thread.sleep(generator.nextInt(500) + 500);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Task failed: " + e.getMessage(), e);
         }
     }
 }

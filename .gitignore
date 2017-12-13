@@ -1,1 +1,28 @@
-/target/
+.settings/
+**/target/
+**/bin/
+bin/**
+*.class
+*.classpath
+*.metadata
+*.project
+*.idl
+*.ear
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# OS generated files #
+.DS_Store
+.DS_Store?
+
+# IntelliJ generated files #
+*.iml
+**/.idea/**
+
+# SoapUI files #
+**/global-groovy.log
+**/soapui.log
+**/soapui-errors.log
+

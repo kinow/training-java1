@@ -2,35 +2,34 @@ package br.eti.kinoshita.training_java1.pubsub;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.time.ZoneOffset;
 import java.util.Random;
-import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public abstract class Task<T> implements Runnable {
+public abstract class Task implements Runnable {
 
-    private final UUID identifier;
     private final LocalDateTime created;
+    private final int identifier;
     private LocalDateTime started;
     private LocalDateTime finished;
-    private T result;
+    private Object result;
 
     private final Random generator = new Random();
 
     private static final Logger LOGGER = Logger.getLogger(Task.class.getName());
 
-    public Task() {
+    public Task(int identifier) {
         super();
-        this.identifier = UUID.randomUUID();
+        this.identifier = identifier;
         this.created = LocalDateTime.now(Clock.systemUTC());
     }
 
-    public UUID getIdentifier() {
+    public int getIdentifier() {
         return identifier;
     }
 
@@ -46,12 +45,24 @@ public abstract class Task<T> implements Runnable {
         return finished;
     }
 
-    public T getResult() {
+    public Object getResult() {
         return result;
     }
 
-    static class NumberTask extends Task<Number> {
+    public void setStarted(LocalDateTime started) {
+        this.started = started;
+    }
 
+    public void setFinished(LocalDateTime finished) {
+        this.finished = finished;
+    }
+
+    public void setResult(Object result) {
+        this.result = result;
+    }
+
+    public Random getGenerator() {
+        return generator;
     }
 
     /**
@@ -61,30 +72,68 @@ public abstract class Task<T> implements Runnable {
     public void run() {
         try {
             started = LocalDateTime.now(Clock.systemUTC());
-            LOGGER.info(String.format("Thread started at %s", started.toString()));
+            // LOGGER.info(String.format("TASK -- STARTED"));
             Thread.sleep(generator.nextInt(500) + 500);
+            finished = LocalDateTime.now(Clock.systemUTC());
+            result = finished.toInstant(ZoneOffset.UTC).toEpochMilli()
+                    - started.toInstant(ZoneOffset.UTC).toEpochMilli();
         } catch (InterruptedException e) {
             LOGGER.log(Level.SEVERE, "Task failed: " + e.getMessage(), e);
-        } finally {
-            finished = LocalDateTime.now(Clock.systemUTC());
         }
     }
 
     public static void main(String[] args) {
         final int numberOfTasks = 50;
-        final List<Task<?>> tasks = Collections.synchronizedList(new ArrayList<>(numberOfTasks));
+        final BlockingQueue<Task> tasks = new ArrayBlockingQueue<>(10);
         // 1 producer
         ExecutorService producer = Executors.newFixedThreadPool(1);
         producer.submit(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0 ; i < numberOfTasks; i++) {
-                    LOGGER.info("Adding ");
-                    tasks.add(new NumberTask());
+                int submitted = 0;
+                while (true) {
+                    LOGGER.info("PRODUCER -- Adding number task " + submitted);
+                    try {
+                        tasks.put(new Task(submitted) {
+                        });
+                        submitted++;
+                        if (submitted == numberOfTasks) {
+                            LOGGER.info("PRODUCER -- out");
+                            break;
+                        }
+                    } catch (InterruptedException e) {
+                        LOGGER.warning(e.getMessage());
+                    }
                 }
             }
-        });
+        }, "producer");
         producer.shutdown();
+        // 1 consumer
+        ExecutorService consumer = Executors.newFixedThreadPool(1);
+        consumer.submit(new Runnable() {
+            private int processed = 0;
+
+            @Override
+            public void run() {
+                Task task = null;
+                while (true) {
+                    try {
+                        task = tasks.take();
+                        task.run();
+                        LOGGER.info("CONSUMER -- Number task " + task.getIdentifier() + " received. Took: "
+                                + task.getResult());
+                        processed++;
+                        if (processed == numberOfTasks) {
+                            LOGGER.info("CONSUMER -- out");
+                            break;
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }, "consumer");
+        consumer.shutdown();
         LOGGER.info("OK!");
     }
 }

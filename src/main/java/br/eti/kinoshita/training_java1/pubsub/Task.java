@@ -8,6 +8,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -89,7 +90,12 @@ public abstract class Task implements Runnable {
         // buffer supporting 10 tasks only
         final BlockingQueue<Task> tasks = new ArrayBlockingQueue<>(10, /* fair */ false);
         // 1 producer
-        ExecutorService producer = Executors.newFixedThreadPool(1);
+        ExecutorService producer = Executors.newFixedThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "producer-thread");
+            }
+        });
         producer.submit(new Runnable() {
             @Override
             public void run() {
@@ -112,7 +118,12 @@ public abstract class Task implements Runnable {
         }, "producer");
         producer.shutdown();
         // 1 consumer
-        ExecutorService consumer = Executors.newFixedThreadPool(1);
+        ExecutorService consumer = Executors.newFixedThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "consumer-thread");
+            }
+        });
         consumer.submit(new Runnable() {
             private int processed = 0;
 

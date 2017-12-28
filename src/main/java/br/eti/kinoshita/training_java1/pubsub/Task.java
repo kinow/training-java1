@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/** The task. */
 public abstract class Task implements Runnable {
 
     private final LocalDateTime created;
@@ -83,8 +84,10 @@ public abstract class Task implements Runnable {
     }
 
     public static void main(String[] args) {
+        // number of tasks to be processed
         final int numberOfTasks = 50;
-        final BlockingQueue<Task> tasks = new ArrayBlockingQueue<>(10);
+        // buffer supporting 10 tasks only
+        final BlockingQueue<Task> tasks = new ArrayBlockingQueue<>(10, /* fair */ false);
         // 1 producer
         ExecutorService producer = Executors.newFixedThreadPool(1);
         producer.submit(new Runnable() {
